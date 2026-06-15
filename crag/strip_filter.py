@@ -19,7 +19,7 @@ stripping_bot = ChatOpenAI(
 struct_stripping_bot = stripping_bot.with_structured_output(FilterResponse, strict=True)
     
 
-def filter_strips(strips:list[str], query: str):
+def filter_strips(strips:list[str], query: str)->list[StripFilterationDetail]:
     
     strips_dict = {str(getId()):s for s in strips}
     
@@ -29,7 +29,7 @@ def filter_strips(strips:list[str], query: str):
         STRIP_FILTER_BOT_SYSTEM_PROMPT,
     ),
     ("human", f"""given query: {query}
-given texts: {"\n".join([f"\strip id:{_id}\strip text:{_text}" for _id,_text in strips_dict.items()])}
+given texts: {"\n".join([f"\nstrip id:{_id}\nstrip text:{_text}" for _id,_text in strips_dict.items()])}
 """),
     ])
     return res.filters

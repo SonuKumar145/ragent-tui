@@ -17,7 +17,7 @@ document_evaluator = ChatOpenAI(
 
 struct_document_evaluator = document_evaluator.with_structured_output(EvaluationResponse, strict=True)
 
-def score_document(documents:list[Document], query: str):
+def score_document(documents:list[Document], query: str)->list[Evaluation]:
     res = struct_document_evaluator.invoke([
     (
         "system",
@@ -27,4 +27,4 @@ def score_document(documents:list[Document], query: str):
 given texts: {"\n".join([f"\ndocument id:{d.id}\ndocument page_content:{d.page_content}" for d in documents])}
 """),
     ])
-    return res
+    return res.scores
