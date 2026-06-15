@@ -8,6 +8,9 @@ chroma_db
 ./chroma/chroma_db
 ./langchain_chroma/chroma_db
 
+documents
+./documents
+
 # C extensions
 *.so
 
