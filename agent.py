@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 from langchain_core.documents import Document
 from uuid import uuid4
 from prompts import SYSTEM_PROMPT
-
+from crag.knowledge_refinement import refine_knowledge
 # import chromadb
 # from chromadb.utils import embedding_functions
 
@@ -12,41 +12,37 @@ from langchain_chroma import Chroma
 from langchain_core.tools import tool
 from langchain_core.messages import SystemMessage, HumanMessage
 from deepagents import create_deep_agent
+from configs import FILE_PATH,COLLECTION_NAME,PERSIST_DIRECTORY_PATH,OPENAI_EMBEDDING_MODEL
+from document_handler.document_loader import load_document
+from chroma.store import add_document_to_vector_db
 
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 if not OPENAI_API_KEY:
     raise ValueError("OPENAI_API_KEY not set.")
 
-embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+embeddings = OpenAIEmbeddings(model=OPENAI_EMBEDDING_MODEL)
 
 vectorstore = Chroma(
-    collection_name="hr_faqs",
+    collection_name=COLLECTION_NAME,
     embedding_function=embeddings,
-    persist_directory="./langchain_chroma/chroma_db"
+    persist_directory=PERSIST_DIRECTORY_PATH
 )
 
 if len(vectorstore.get()["ids"]) == 0:
-    documents = list()
-
-    for i, faq in enumerate(FAQ_DOCUMENTS):
-        documents.append(Document(
-            page_content=f"Q: {faq['question']}\nA: {faq['answer']}"
-        ))
-    
-    vectorstore.add_documents(documents=documents)
-    print(f"Ingested {len(FAQ_DOCUMENTS)} FAQ documents.")
+    loaded_documents = load_document(FILE_PATH)
+    add_document_to_vector_db(loaded_documents)
 
 @tool
 def query_knowledge_base(query: str) -> str:
     """
     Search the company HR/IT knowledge base for documents related to a query.
-    Returns the top relevant FAQ text.
+    Returns the top relevant content.
     """
     docs = vectorstore.similarity_search(query, k=3)
     if not docs:
         return "No relevant documents found."
-    return "\n\n---\n\n".join(doc.page_content for doc in docs)
+    return refine_knowledge(query, docs)
 
 
 agent = create_deep_agent(
@@ -55,7 +51,7 @@ agent = create_deep_agent(
     system_prompt=SYSTEM_PROMPT,
 )
 
-print("HR Chatbot with DeepAgents (CRAG logic) ready. Type 'exit' to quit.\n")
+print("Chatbot is ready. Query what you want.\nType 'exit' to quit.\n")
 messages = []
 
 while True:
@@ -67,12 +63,9 @@ while True:
 
     messages.append(HumanMessage(content=user_input))
 
-    # Run the agent – it will call tools autonomously and follow the CRAG steps.
     result = agent.invoke({"messages": messages})
 
-    # The agent returns a list of messages; the last AI message is the reply.
     final_answer = result["messages"][-1].content
     print(f"Bot: {final_answer}\n")
 
-    # Keep the full conversation history for the next turn
     messages = result["messages"]
