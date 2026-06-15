@@ -1,6 +1,8 @@
 import os
 from dotenv import load_dotenv
-from typing import List, Optional
+from langchain_core.documents import Document
+from uuid import uuid4
+from prompts import SYSTEM_PROMPT
 
 # import chromadb
 # from chromadb.utils import embedding_functions
@@ -13,23 +15,30 @@ from deepagents import create_deep_agent
 
 from faq_documents import FAQ_DOCUMENTS
 
-# Load environment
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 if not OPENAI_API_KEY:
     raise ValueError("OPENAI_API_KEY not set.")
+
+DOCUMENTATION_EVALUATION_THRESHOLD=0.3
 
 embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
 
 vectorstore = Chroma(
     collection_name="hr_faqs",
     embedding_function=embeddings,
+    persist_directory="./langchain_chroma/chroma_db"
 )
 
 if len(vectorstore.get()["ids"]) == 0:
-    texts = [f"Q: {faq['question']}\nA: {faq['answer']}" for faq in FAQ_DOCUMENTS]
-    metadatas = [{"question": faq["question"], "answer": faq["answer"]} for faq in FAQ_DOCUMENTS]
-    vectorstore.add_texts(texts=texts, metadatas=metadatas)
+    documents = list()
+
+    for i, faq in enumerate(FAQ_DOCUMENTS):
+        documents.append(Document(
+            page_content=f"Q: {faq['question']}\nA: {faq['answer']}"
+        ))
+    
+    vectorstore.add_documents(documents=documents)
     print(f"Ingested {len(FAQ_DOCUMENTS)} FAQ documents.")
 
 @tool
@@ -42,22 +51,6 @@ def query_knowledge_base(query: str) -> str:
     if not docs:
         return "No relevant documents found."
     return "\n\n---\n\n".join(doc.page_content for doc in docs)
-
-
-SYSTEM_PROMPT = """You are an HR and IT support assistant for the company.
-You MUST answer ONLY from the provided internal documents.
-To answer a user question, follow these steps carefully:
-
-1. Call the tool `query_knowledge_base` with the user's exact question to get relevant documents.
-2. Examine the returned documents. If they contain enough information to answer, do so.
-3. If the documents are irrelevant or insufficient:
-   a. Think of a better, more specific search phrase.
-   b. Call `query_knowledge_base` again with the improved query.
-   c. Repeat if needed, but after two attempts if still not found, tell the user that
-      the information is not available and ask them to rephrase.
-4. Always answer concisely and professionally, citing only the documents.
-
-Never invent information. If you cannot find the answer, say so clearly."""
 
 
 agent = create_deep_agent(

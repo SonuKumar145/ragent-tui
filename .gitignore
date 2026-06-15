@@ -6,7 +6,7 @@ __pycache__/
 chroma_db
 ./chroma_db
 ./chroma/chroma_db
-
+./langchain_chroma/chroma_db
 
 # C extensions
 *.so
