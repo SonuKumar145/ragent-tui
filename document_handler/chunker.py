@@ -12,6 +12,7 @@ def chunk_document(text:str):
         else:
             chunks.extend(
                 RecursiveCharacterTextSplitter(
+                    separators=["\n\n", ". ", " ", ""],
                     chunk_size=1000,
                     chunk_overlap=100
                 ).split_text(paragraph)

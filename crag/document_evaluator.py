@@ -15,7 +15,7 @@ document_evaluator = ChatOpenAI(
 
 )
 
-struct_document_evaluator = document_evaluator.with_structured_output(EvaluationResponse)
+struct_document_evaluator = document_evaluator.with_structured_output(EvaluationResponse, strict=True)
 
 def score_document(documents:list[Document], query: str):
     res = struct_document_evaluator.invoke([

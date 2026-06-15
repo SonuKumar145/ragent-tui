@@ -19,3 +19,12 @@ DOCUMENT_EVALUATOR_SYSTEM_PROMPT = """
 You are a helpful assistant that scores the given documents based on the given query based on their relevance to the given query.
 You give score between 1 to 10 based the relevance of the each given document to the given query.
 """
+
+
+
+STRIP_FILTER_BOT_SYSTEM_PROMPT = """
+You are a helpful assistant that tells if a given piece of text (strip) is relevant for answering the query or not by flagging either its 'keep' parameter true or false in the structured response. You will be given pieces of text (strips) and you have to flag each of them based on the given query based on their relevance to the given query.
+"""
+
+
+

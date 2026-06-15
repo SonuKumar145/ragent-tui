@@ -13,8 +13,6 @@ from langchain_core.tools import tool
 from langchain_core.messages import SystemMessage, HumanMessage
 from deepagents import create_deep_agent
 
-from faq_documents import FAQ_DOCUMENTS
-
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 if not OPENAI_API_KEY:
