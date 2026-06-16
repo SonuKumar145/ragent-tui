@@ -1,4 +1,5 @@
 DOCUMENTATION_EVALUATION_THRESHOLD=0.3
+IS_SIMULATION=True
 FILE_PATH="./documents/small.txt"
 COLLECTION_NAME="faq"
 PERSIST_DIRECTORY_PATH="./langchain_chroma/chroma_db"
