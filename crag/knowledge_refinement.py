@@ -7,7 +7,7 @@ from .strip_filter import filter_strips
 def convert_to_strips(text:str):
     text = re.sub(r"\s+", " ", text).strip()
     sentences = re.split(r"(?<=[.!?])\s+", text)
-    return [s.strip() for s in sentences if len(s.strip()>20)]
+    return [s.strip() for s in sentences if len(s.strip())>20]
 
 def filter_docs(scores: list[Evaluation], documents:dict[str,Document], threshold=0.3)->list[Document]:
     return [documents[str(doc_score.id)] for doc_score in scores if documents[str(doc_score.id)] and doc_score.score >=threshold]

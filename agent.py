@@ -30,7 +30,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from configs import FILE_PATH,COLLECTION_NAME,PERSIST_DIRECTORY_PATH,OPENAI_EMBEDDING_MODEL, IS_SIMULATION
 from document_handler.document_loader import load_document
 from chroma.store import add_document_to_vector_db
-from simulation import sim_message
+from simulation import get_simulated_response
 
 
 print(json.dumps({
@@ -100,8 +100,8 @@ messages = [
 
 while True:
     user_input = sys.stdin.readline()
-    
-    if not user_input or user_input.lower() in ("exit", "quit"):
+
+    if not user_input or user_input.lower().strip() in ("exit", "quit"):
         break
     
     if IS_SIMULATION:
@@ -109,7 +109,7 @@ while True:
         
         query_result= query_knowledge_base.invoke({"query": user_input})
         
-        for chunk in sim_message(query_result):
+        for chunk in get_simulated_response(query_result):
             payload = {"message": "stream_chunk", "content": chunk}
             print(json.dumps(payload), flush=True)
         
@@ -117,9 +117,5 @@ while True:
     
         messages.append(HumanMessage(content=user_input))
 
-        for chunk in llm_with_tools.stream("Explain quantum computing in one paragraph"):
+        for chunk in llm_with_tools.stream(user_input):
             print(chunk.content, end="", flush=True)
-
-        # final_answer = result["messages"][-1].content
-
-        # messages = result["messages"]
