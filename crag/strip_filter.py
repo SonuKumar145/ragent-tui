@@ -1,5 +1,5 @@
 from langchain_openai import ChatOpenAI
-from prompts import STRIP_FILTER_BOT_SYSTEM_PROMPT
+from utils.prompts import STRIP_FILTER_BOT_SYSTEM_PROMPT
 from pydantic import BaseModel
 from uuid import uuid4 as getId
 import os

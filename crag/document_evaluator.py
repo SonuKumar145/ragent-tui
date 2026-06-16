@@ -1,5 +1,5 @@
 from langchain_openai import ChatOpenAI
-from prompts import DOCUMENT_EVALUATOR_SYSTEM_PROMPT
+from utils.prompts import DOCUMENT_EVALUATOR_SYSTEM_PROMPT
 from pydantic import BaseModel
 from configs import IS_SIMULATION
 from langchain_core.documents import Document
