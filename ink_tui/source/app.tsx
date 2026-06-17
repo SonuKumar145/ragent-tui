@@ -10,17 +10,27 @@ import gradient from 'gradient-string'
 const ENTER_ALT_SCREEN = '\x1b[?1049h';
 const LEAVE_ALT_SCREEN = '\x1b[?1049l';
 
-const status_color = {
-	'ok': 'green',
-	'inprocess': 'white',
-	'done': 'green',
-	'warning': 'yellow',
-	'error': 'red',
+const statusColor = {
+	ok: 'cyan',
+	inprocess: 'blue',
+	done: 'green',
+	warning: 'yellow',
+	error: 'red',
+}
+
+type Message = {
+	'type': 'agent' | 'user' | 'error',
+	'message_id':string,
+	'message': string
 }
 
 export default function App() {
 	const [input, setInput] = useState('');
-	const [history, setHistory] = useState<string[]>(['Bot: Hello! How can I help you today?']);
+	const [history, setHistory] = useState<Message[]>([{
+		type: 'agent',
+		message_id: 'init',
+		message: "Hello! How can I help you today?"
+	}]);
 	const [isTyping, setIsTyping] = useState(false);
 	const { stdout } = useStdout();
 	const [agentReady, setAgentReady] = useState(false);
@@ -62,14 +72,46 @@ export default function App() {
 		rl.on('line', (line) => {
 			try {
 				const response = JSON.parse(line.trim());
-
-				setSetupMessages(prev => ({ ...prev, [response.id]: response }));
+				setHistory((prev) => ([
+						...prev,
+						{
+							type: 'agent',
+							message: response.message,
+							message_id: response.message_id
+						}
+					]))
 
 				if (response.status === "ok" && response.id === "agent_ready") {
 					setAgentReady(true);
+					setSetupMessages(prev => ({ ...prev, [response.id]: response }));
+				}
+				else if (response.status === "ok" && response.id === "stream_chunk") {
+					setHistory((prev) => ([
+						...prev,
+						{
+							type: 'agent',
+							message: response.message,
+							message_id: response.message_id
+						}
+					]))
+				} else if (response.status === "error" && response.id === "disaster") {
+					setHistory((prev) => ([
+						...prev,
+						{
+							type: 'error',
+							message: response.error,
+							message_id: `error-id-${String(crypto.randomUUID())}`
+						}
+					]))
+				} else {
+					setSetupMessages(prev => ({ ...prev, [response.id]: response }));
 				}
 			} catch (err) {
-				setHistory(prev => [...prev, `Raw Output: ${line}`]);
+				setHistory(prev => [...prev, {
+					type: 'error',
+					message: `Raw Output: ${line}`,
+					message_id: `error-id-${String(crypto.randomUUID())}`
+				}]);
 			}
 			setIsTyping(false);
 		});
@@ -106,12 +148,16 @@ export default function App() {
 
 	const handleSubmit = (value: string) => {
 		if (!value.trim() || isTyping) return;
-
-		setHistory(prev => [...prev, `You: ${value}`]);
+		const uuid = crypto.randomUUID();
+		setHistory(prev => [...prev, {
+			type: 'user',
+			message: value,
+			message_id: String(uuid)
+		}]);
 		setIsTyping(true);
 		setInput('');
 
-		const payload = JSON.stringify({ message: value });
+		const payload = JSON.stringify({ message: value, message_id: String(uuid) });
 		pyProcess.current?.stdin.write(payload + '\n');
 	};
 
@@ -124,21 +170,20 @@ export default function App() {
 			borderStyle="single"
 			borderColor="dim"
 		>
-			<Box marginBottom={3} flexDirection='column'>
+			<Box marginBottom={1} flexDirection='column'>
 				<Text color="magenta">
-					{gradient(['#3b82f6', '#8b5cf6'])('█▀▀ █▀█ ▄▀█ █▀▀ █▀▀ █▄░█ ▀█▀')}
+					{gradient(['#4895dd', '#be667e'])('█▀▀ █▀█ ▄▀█ █▀▀ █▀▀ █▄░█ ▀█▀')}
 				</Text>
 				<Text color="magenta">
-					{gradient(['#3b82f6', '#8b5cf6'])('█▄▄ █▀▄ █▀█ █▄█ ██▄ █░▀█ ░█░')}
+					{gradient(['#4895dd', '#be667e'])('█▄▄ █▀▄ █▀█ █▄█ ██▄ █░▀█ ░█░')}
 				</Text>
-				<Text>{'─'.repeat(size.columns-4)}</Text>
-				<Text>{'─'.repeat(size.columns-4)}</Text>
+				<Text>{'─'.repeat(size.columns - 4)}</Text>
 			</Box>
 			{
 				!agentReady ? (
 					<Box flexDirection='row'>
 						<Text color="whiteBright">
-							Initialising
+							{`Initialising `}
 						</Text>
 						<Spinner color="whiteBright" />
 					</Box>
@@ -148,36 +193,74 @@ export default function App() {
 				{
 					agentReady ? (
 						<Box flexDirection="column" marginBottom={1}>
+							<Text color="red">
+								Messages: {history.length}
+							</Text>
 							{history.map((msg, index) => (
-								<Box>
-									<Text key={index} color={msg.startsWith('You:') ? 'green' : 'white'}>
-										{msg}
+								<Box flexDirection='row'>
+									{
+										msg.type == "agent" ?
+											(
+												<Box marginRight={2} marginBottom={1}>
+													<Text
+														color="whiteBright"
+														backgroundColor="#164e63"
+													>
+														{" Agent "}
+													</Text>
+												</Box>
+											) :
+											msg.type == "user" ? (
+												<Box marginRight={2} marginBottom={1}>
+													<Text
+														color="whiteBright"
+														backgroundColor="#14532d"
+													>
+														{" User "}
+													</Text>
+												</Box>
+											) : (
+												<Box marginRight={2} marginBottom={1}>
+													<Text
+														color="whiteBright"
+														backgroundColor="#7f1d1d"
+													>
+														{" Error "}
+													</Text>
+												</Box>
+
+											)
+									}
+									<Text key={index} color={msg.type == "agent" ? 'green' : 'white'}>
+										{msg.message}
 									</Text>
 									{/* {
-								msg
+								bot is thinking
 							} */}
 								</Box>
 							))}
 							{isTyping && <Text color="yellow" dimColor>Bot is thinking...</Text>}
 						</Box>
 					) : (
-						<Box flexDirection="column"
-							borderStyle="single"
-							borderColor="dim">
-							{Object.entries(setupMessages).map(([id, msgDetails]) => (
-								<Box flexDirection="row">
-									<Text key={id} color={status_color[msgDetails.status]}>
-										{msgDetails.message}
-									</Text>
-									{
-										msgDetails.status == "inprocess" ? (
-											<Spinner color={status_color['inprocess']} />
-										) : null
-									}
-								</Box>
+						Object.keys(setupMessages).length > 0 ? (
+							<Box flexDirection="column"
+								borderStyle="single"
+								borderColor="dim">
+								{Object.entries(setupMessages).map(([id, msgDetails]) => (
+									<Box flexDirection="row">
+										<Text key={id} color={statusColor[msgDetails.status]}>
+											{msgDetails.message}
+										</Text>
+										{
+											msgDetails.status == "inprocess" ? (
+												<Spinner color={statusColor['inprocess']} />
+											) : null
+										}
+									</Box>
 
-							))}
-						</Box>
+								))}
+							</Box>
+						) : null
 					)
 				}
 				{

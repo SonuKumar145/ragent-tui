@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 from pathlib import Path
 from dotenv import load_dotenv, set_key
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
@@ -43,17 +44,17 @@ try:
 
 
     print_inprocess_string_message("embedding_model","creating embedding model instance" )
-    
+
     embeddings = OpenAIEmbeddings(model=OPENAI_EMBEDDING_MODEL)
     print_done_string_message("embedding_model","embedding model instance created")
-    
+
     print_inprocess_string_message("vector_store","creating vector store instance")
     vectorstore = Chroma(
         collection_name=COLLECTION_NAME,
         embedding_function=embeddings,
         persist_directory=PERSIST_DIRECTORY_PATH
     )
-    
+
     print_done_string_message("vector_store", "vectorstore instance created")
 
     if len(vectorstore.get()["ids"]) == 0:
@@ -94,31 +95,32 @@ try:
         )
 
     llm_with_tools = llm.bind_tools([query_knowledge_base])
-    
+
     print_ok_string_message("agent_ready","Agent is ready!")
 
     messages = [
         SystemMessage(content=SYSTEM_PROMPT)
     ]
+    current_message_id = None
 
     while True:
         user_input = sys.stdin.readline()
-
-        if not user_input or user_input.lower().strip() in ("exit", "quit"):
+        user_input = json.loads(user_input.strip())
+        if not user_input.get('message', None) or not user_input.get('message_id', None) or user_input.get('message').lower().strip() in ("exit", "quit"):
             break
         
         if IS_SIMULATION:
             print_ok_string_message("response_stream", "response stream started")
             
-            query_result= query_knowledge_base.invoke({"query": user_input})
+            query_result= query_knowledge_base.invoke({"query": user_input.get('message', '')})
             
             for chunk in get_simulated_response(query_result):
-                print_ok_string_message("stream_chunk", message=chunk, end="")
+                print_ok_string_message("stream_chunk", message=chunk, end="\n", message_id = user_input['message_id'])
             
         else:
-            messages.append(HumanMessage(content=user_input))
+            messages.append(HumanMessage(content=user_input.get('message', '')))
 
-            for chunk in llm_with_tools.stream(user_input):
+            for chunk in llm_with_tools.stream(messages):
                 print(chunk.content, end="", flush=True)
                 
 except Exception as e:
