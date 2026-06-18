@@ -14,6 +14,7 @@ def filter_docs(scores: list[Evaluation], documents:dict[str,Document], threshol
 
 
 def refine_knowledge(query:str, documents:list[Document])->str:
+    print("query: ", query)
     refined_knowledge = ""
     
     doc_dict = { doc.id:doc for doc in documents}
@@ -26,6 +27,7 @@ def refine_knowledge(query:str, documents:list[Document])->str:
         filtered_strips = filter_strips(strips, query)
         refined_knowledge = f"{refined_knowledge}\n{"\n".join(filtered_strips)}"
     
+    print("refinied knowledge: ", refined_knowledge)
     return refined_knowledge
         
 

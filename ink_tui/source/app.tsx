@@ -158,6 +158,7 @@ export default function App() {
 							message_id: `error-id-${String(crypto.randomUUID())}`
 						}
 					]))
+					setSetupMessages(prev => ({ ...prev, [response.id]: response }));
 				} else {
 					setSetupMessages(prev => ({ ...prev, [response.id]: response }));
 				}
@@ -233,7 +234,6 @@ export default function App() {
 			height={size.rows}
 			borderStyle="single"
 			borderColor="dim"
-			backgroundColor={'black'}
 		>
 			<Box marginBottom={1} flexDirection='column' flexShrink={0}>
 				<Text color="magenta">
